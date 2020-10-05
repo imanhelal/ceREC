@@ -1,0 +1,10 @@
+a -> b
+a -> c
+a -> d
+((b & c & d) # g) -> e
+e -> f
+f -> g
+f -> h
+(f # h) -> i
+i -> j
+j -> k

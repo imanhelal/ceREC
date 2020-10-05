@@ -1,0 +1,13 @@
+(A # N) -> B	
+B -> C	
+B -> D
+(D # H) -> E
+E -> F
+E -> G
+F -> H
+C -> I
+C -> J
+(I & J) -> L
+L -> M
+L -> N
+
