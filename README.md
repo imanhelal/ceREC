@@ -1,6 +1,6 @@
 # ceREC
 CEP-based Runtime Event Correlation (ceREC) Implementation and Evaluation
-The source code associates the paper "Online Correlation for Process Events: A CEP-based Approach" By: Iman Helal, Ahmed Hany
+The source code associates the paper "Online Correlation for Unlabeled Process Events: A Flexible CEP-based Approach" By: Iman Helal, Ahmed Hany
 
 To run our code first:
 
@@ -13,4 +13,4 @@ Specify the output folder inside the eg.cu.fci.is.correlator package in (2) to g
    Ranking score threshold
 The output is stored in two files one for the correlated events and another for the failed events inside /CEPForEventCorrelation folder.
 
-This research work is copy righted to: Iman Helal, Ahmed Hany @2020
+This research work is copy righted to: Iman Helal, Ahmed Hany @2020-2021
