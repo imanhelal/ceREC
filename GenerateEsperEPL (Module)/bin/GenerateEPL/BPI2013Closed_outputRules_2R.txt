@@ -1,0 +1,34 @@
+// create a table to hold the state of the current caseID
+create table Cases (caseID long primary key);
+
+//an incoming stream of unlabeled events (activity name and its timestamp) 
+create schema UnlabeledEvent(caseID long, activity string, timestamp long, probability double);
+@Name('Unlabeled') select * from UnlabeledEvent;
+
+//an outgoing stream of final labeled events (caseID, activity name, its timestamp, calculated probability )
+create schema LabeledEvent(caseID long, activity string, timestamp long, probability double);
+@Name('Labeled') select * from LabeledEvent;
+
+//an intermediate stream to check the possible labels for incoming unlabeled events. These should be temporary and need to be deleted after usage. 
+create schema TempEvent (caseID long, activity string, timestamp long, probability double);
+@Name('TempEvent') select * from TempEvent ;
+@Name('Unlabeled') select * from UnlabeledEvent; 
+@Name('Labeled') select * from LabeledEvent; 
+ @Name('FilterLabeledEvent') select * from FilterLabeledEvent; 
+@Name('Temp') select * from TempEvent ; 
+@Name('get_case_ID')  insert into Cases  select (select coalesce(max(caseID)+1, 1)  from  Cases )  as caseID from UnlabeledEvent  where  activity in ('accepted','unmatched');  
+@Name('start_case_accepted')  insert into FilterLabeledEvent (caseID, activity, timestamp, probability, initTime)  select (select coalesce(max(caseID)+1,1) from Cases) as caseID, UE.activity, UE.timestamp, 1.0, UE.sysTime as initTime  from UnlabeledEvent as UE where UE.activity = 'accepted'; 
+@Name('start_case_unmatched')  insert into FilterLabeledEvent (caseID, activity, timestamp, probability, initTime)  select (select coalesce(max(caseID)+1,1) from Cases) as caseID, UE.activity, UE.timestamp, 1.0, UE.sysTime as initTime  from UnlabeledEvent as UE where UE.activity = 'unmatched'; 
+
+@Priority(5) @Name('TE_accepted') insert into TempEvent (caseID, activity, timestamp) select distinct pred.caseID, 'accepted' as activity, succ.timestamp as timestamp from pattern [(every pred=FilterLabeledEvent(activity='accepted' or activity='queued)') -> every succ=UnlabeledEvent(activity='accepted')) where timer:within(86399 sec)]#time(86399 sec)  where (succ.timestamp - pred.timestamp) >= 0 and (succ.timestamp - pred.timestamp) <=86398000;
+
+@Priority(20) @Name('Correlate_accepted') insert into LabeledEvent (caseID, activity , timestamp, probability) select distinct caseID as caseID, last(activity) as activity, max(timestamp) as timestamp , min(((select count(caseID)  from TempEvent.win:time_batch(1 sec) where caseID = T.caseID and activity = T.activity and timestamp=T.timestamp) /count(all caseID, group_by:timestamp)),1.0) as probability from TempEvent.win:time_batch(1 sec) as T  where activity = 'accepted'  group by caseID order by timestamp desc limit 5 ; 
+
+@Priority(50) @Name('Filter_accepted') insert into FilterLabeledEvent (caseID, activity , timestamp, probability, initTime) select distinct caseID as caseID, last(activity) as activity, max(timestamp) as timestamp , probability,  "+initTime+" from LabeledEvent.win:time(1 sec) as T where activity = 'accepted'  and probability >= 0.3 group by caseID order by probability desc limit 5 ;
+
+@Priority(5) @Name('TE_queued') insert into TempEvent (caseID, activity, timestamp) select distinct pred.caseID, 'queued' as activity, succ.timestamp as timestamp from pattern [(every pred=FilterLabeledEvent(activity = 'accepted') -> every succ=UnlabeledEvent(activity='queued')) where timer:within(86079 sec)]#time(86079 sec)  where (succ.timestamp - pred.timestamp) >= 0 and (succ.timestamp - pred.timestamp) <=86078000;
+
+@Priority(20) @Name('Correlate_queued') insert into LabeledEvent (caseID, activity , timestamp, probability) select distinct caseID as caseID, last(activity) as activity, max(timestamp) as timestamp , min(((select count(caseID)  from TempEvent.win:time_batch(1 sec) where caseID = T.caseID and activity = T.activity and timestamp=T.timestamp) /count(all caseID, group_by:timestamp)),1.0) as probability from TempEvent.win:time_batch(1 sec) as T  where activity = 'queued'  group by caseID order by timestamp desc limit 5 ; 
+
+@Priority(50) @Name('Filter_queued') insert into FilterLabeledEvent (caseID, activity , timestamp, probability, initTime) select distinct caseID as caseID, last(activity) as activity, max(timestamp) as timestamp , probability,  "+initTime+" from LabeledEvent.win:time(1 sec) as T where activity = 'queued'  and probability >= 0.3 group by caseID order by probability desc limit 5 ;
+

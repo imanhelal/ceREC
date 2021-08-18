@@ -1,0 +1,27 @@
+Activity,Min,Max
+w_validate application,0,7953720
+a_concept,0,410760
+o_cancelled,0,5859420
+o_sent (online only),0,768960
+w_handle leads,0,251340
+w_call after offers,0,6388680
+a_create application,0,0
+a_complete,0,60
+a_submitted,0,60
+a_validating,0,7948080
+w_call incomplete files,0,10552200
+o_created,0,60
+o_accepted,0,4473600
+o_create offer,0,9682440
+w_assess potential fraud,0,7620420
+a_denied,0,2937960
+a_cancelled,0,12104760
+a_incomplete,0,1052460
+o_returned,0,3018060
+a_pending,0,60
+w_complete application,0,1921920
+w_shortened completion,0,261120
+w_personal loan collection,0,11525820
+o_refused,0,60
+a_accepted,0,2625960
+o_sent (mail and online),0,1312200
